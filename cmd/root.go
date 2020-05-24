@@ -85,9 +85,12 @@ func readOpJSON(fileName string) []opcode.OpCode {
 }
 
 func writeGo(file *os.File, codes []opcode.OpCode) {
-	goCode := "package opcode\n\nimport (\n\t\"fmt\"\n)\n\n// HandleOp handles opcodes\nfunc HandleOp(op byte) int {\n\tvar opbytes int\n\tswitch op {\n"
+	goCode := "package opcode\n\nimport (\n\t\"fmt\"\n)\n\n// HandleOp handles opcodes\nfunc HandleOp(op byte) int {\n\topbytes := 1\n\tswitch op {\n"
 	for _, op := range codes {
-		goCode += fmt.Sprintf("\tcase 0x%02X:\n\t\tfmt.Println(\"Handling OpCode: 0x%02X\")\n\t\topbytes = %v\n", op.Code, op.Code, op.Size)
+		goCode += fmt.Sprintf("\tcase 0x%02X:\n\t\tfmt.Println(\"Handling OpCode: 0x%02X\")\n", op.Code, op.Code)
+		if op.Size > 1 {
+			goCode += fmt.Sprintf("\t\topbytes = %v\n", op.Size)
+		}
 	}
 	goCode += "\tdefault:\n\t\tfmt.Printf(\"Unrecognized OpCode: 0x%02X\", op)\n\t}\n\n\treturn opbytes\n}\n"
 	io.WriteString(file, goCode)
