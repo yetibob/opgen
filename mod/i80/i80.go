@@ -37,6 +37,10 @@ func GenOpCodes() ([]opcode.OpCode, error) {
 		parsedSize, _ := strconv.ParseInt(size, 10, 8)
 		parsedFlags := strings.Split(flags, ", ")
 
+		if parsedSize <= 1 {
+			parsedSize = 1
+		}
+
 		opcode := opcode.OpCode{
 			Code:  int(parsedOp),
 			Desc:  desc,
