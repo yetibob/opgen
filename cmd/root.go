@@ -85,11 +85,11 @@ func readOpJSON(fileName string) []opcode.OpCode {
 }
 
 func writeGo(file *os.File, codes []opcode.OpCode) {
-	goCode := "package opcode\n\nimport (\n\t\"fmt\"\n)\n\n// HandleOp handles opcodes\nfunc HandleOp(op byte) {\n\tswitch op {\n"
+	goCode := "package opcode\n\nimport (\n\t\"fmt\"\n)\n\n// HandleOp handles opcodes\nfunc HandleOp(op byte) int {\n\tvar opbytes int\n\tswitch op {\n"
 	for _, op := range codes {
-		goCode += fmt.Sprintf("\tcase 0x%02X:\n\t\tfmt.Printf(\"Handling OpCode: 0x%02X\")\n", op.Code, op.Code)
+		goCode += fmt.Sprintf("\tcase 0x%02X:\n\t\tfmt.Println(\"Handling OpCode: 0x%02X\")\n\t\topbytes = %v\n", op.Code, op.Code, op.Size)
 	}
-	goCode += "\t\tdefault:\n\t\tfmt.Printf(\"Unrecognized opcode: 0x%02X\", op)\n\t}\n}\n"
+	goCode += "\tdefault:\n\t\tfmt.Printf(\"Unrecognized OpCode: 0x%02X\", op)\n\t}\n\n\treturn opbytes\n}\n"
 	io.WriteString(file, goCode)
 }
 
@@ -110,8 +110,8 @@ func Execute() error {
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringP("format", "f", "json", "output format")
-	rootCmd.PersistentFlags().String("in", "", "input file")
-	rootCmd.PersistentFlags().String("out", "", "name of output file. defaults to std out")
+	rootCmd.PersistentFlags().StringP("in", "i", "", "input file")
+	rootCmd.PersistentFlags().StringP("out", "o", "", "name of output file. defaults to std out")
 }
 
 func initConfig() {
