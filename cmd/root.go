@@ -84,7 +84,7 @@ func writeGo(file *os.File, codes []opcode.OpCode) {
 			goCode += fmt.Sprintf("\t\topbytes = %v\n", op.Size)
 		}
 	}
-	goCode += "\tdefault:\n\t\fmt.Printf(\"Unknown OpCode: 0x%02X\", op)\n\t}\n\n\treturn opbytes\n}\n"
+	goCode += "\tdefault:\n\t\tfmt.Printf(\"Unknown OpCode: 0x%02X\\n\", op)\n\t}\n\n\treturn opbytes\n}\n"
 	io.WriteString(file, goCode)
 }
 
