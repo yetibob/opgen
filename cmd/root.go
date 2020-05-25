@@ -13,52 +13,46 @@ import (
 	"github.com/yetibob/opgen/opcode"
 )
 
+func panicErr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 var (
 	// Used for flags.
-	cfgFile     string
-	userLicense string
-
 	rootCmd = &cobra.Command{
 		Use:   "opgen",
 		Short: "A generator for emulator opcodes",
-		// 		Long: `Cobra is a CLI library for Go that empowers applications.
-		// This application is a tool to generate the needed files
-		// to quickly create a Cobra application.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			format, err := cmd.PersistentFlags().GetString("format")
-			if err != nil {
-				panic(err)
-			}
+			panicErr(err)
+
 			filePath, err := cmd.PersistentFlags().GetString("out")
+			panicErr(err)
+
 			var file *os.File
 			if filePath == "" {
 				file = os.Stdout
 			} else {
 				file, err = os.Create(filePath)
-				if err != nil {
-					panic(err)
-				}
+				panicErr(err)
 			}
-			if err != nil {
-				panic(err)
-			}
+
 			in, err := cmd.PersistentFlags().GetString("in")
-			if err != nil {
-				panic(err)
-			}
+			panicErr(err)
+
 			if format == "json" {
 				opcodes, err := i80.GenOpCodes()
-				if err != nil {
-					panic(err)
-				}
+				panicErr(err)
+
 				writeOpcodes(file, opcodes)
 			} else if format == "go" {
 				var opcodes []opcode.OpCode
 				if in == "" {
 					opcodes, err = i80.GenOpCodes()
-					if err != nil {
-						panic(err)
-					}
+					panicErr(err)
+
 				} else {
 					opcodes = readOpJSON(in)
 				}
@@ -73,14 +67,12 @@ var (
 func readOpJSON(fileName string) []opcode.OpCode {
 	var ops []opcode.OpCode
 	b, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		panic(err)
-	}
+	panicErr(err)
+
 	br := bytes.NewReader(b)
 	err = json.NewDecoder(br).Decode(&ops)
-	if err != nil {
-		panic(err)
-	}
+	panicErr(err)
+
 	return ops
 }
 
@@ -92,7 +84,7 @@ func writeGo(file *os.File, codes []opcode.OpCode) {
 			goCode += fmt.Sprintf("\t\topbytes = %v\n", op.Size)
 		}
 	}
-	goCode += "\tdefault:\n\t\tpanic(\"Unknown OpCode\")\n\t}\n\n\treturn opbytes\n}\n"
+	goCode += "\tdefault:\n\t\fmt.Printf(\"Unknown OpCode: 0x%02X\", op)\n\t}\n\n\treturn opbytes\n}\n"
 	io.WriteString(file, goCode)
 }
 
@@ -100,9 +92,7 @@ func writeOpcodes(file *os.File, codes []opcode.OpCode) {
 	enc := json.NewEncoder(file)
 	enc.SetEscapeHTML(false)
 	err := enc.Encode(codes)
-	if err != nil {
-		panic(err)
-	}
+	panicErr(err)
 }
 
 // Execute t
