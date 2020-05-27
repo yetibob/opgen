@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/yetibob/opgen/mod/i80"
@@ -77,14 +78,28 @@ func readOpJSON(fileName string) []opcode.OpCode {
 }
 
 func writeGo(file *os.File, codes []opcode.OpCode) {
-	goCode := "package opcode\n\nimport (\n\t\"fmt\"\n)\n\n// HandleOp handles opcodes\nfunc HandleOp(op byte) int {\n\topbytes := 1\n\tswitch op {\n"
+	goCode := "package opcode\n\nimport (\n\t\"fmt\"\n)\n\n// HandleOp handles opcodes\nfunc HandleOp(buf []byte) int {\n\topbytes := 1\n\tswitch buf[0] {\n"
 	for _, op := range codes {
 		goCode += fmt.Sprintf("\tcase 0x%02X:\n\t\tfmt.Println(\"Handling OpCode: 0x%02X\")\n", op.Code, op.Code)
+		name := strings.Split(op.Name, " ")
+		if op.Name == "NOP" || op.Name == "-" {
+			goCode += "\t\tfmt.Printf(\"NOP\\n\")\n"
+		} else if op.Size == 1 {
+			if len(name) == 1 {
+				goCode += fmt.Sprintf("\t\tfmt.Printf(\"%v\\n\")\n", name[0])
+			} else {
+				goCode += fmt.Sprintf("\t\tfmt.Printf(\"%v\t\t%v\\n\")\n", name[0], name[1])
+			}
+		} else if op.Size == 2 {
+			goCode += fmt.Sprintf("\t\tfmt.Printf(\"%v\t\t%v,%v\t$%%02X\\n\", buf[1])\n", name[0], "B", "D8")
+		} else if op.Size == 3 {
+			goCode += fmt.Sprintf("\t\tfmt.Printf(\"%v\t\t%v,%v\t$%%02X%%02X\\n\", buf[2], buf[1])\n", name[0], "B", "D16")
+		}
 		if op.Size > 1 {
 			goCode += fmt.Sprintf("\t\topbytes = %v\n", op.Size)
 		}
 	}
-	goCode += "\tdefault:\n\t\tfmt.Printf(\"Unknown OpCode: 0x%02X\\n\", op)\n\t}\n\n\treturn opbytes\n}\n"
+	goCode += "\tdefault:\n\t\tfmt.Printf(\"Unknown OpCode: 0x%02X\\n\", buf[0])\n\t}\n\n\treturn opbytes\n}\n"
 	io.WriteString(file, goCode)
 }
 
