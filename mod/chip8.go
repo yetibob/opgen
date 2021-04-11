@@ -1,4 +1,4 @@
-package i80
+package mod
 
 import (
 	"io/ioutil"
@@ -10,8 +10,11 @@ import (
 	"github.com/yetibob/opgen/opcode"
 )
 
+type Chip8 struct{
+}
+
 // GenOpCodes retrieves and generates a json file containing the Opcodes for the Intel 8080
-func GenOpCodes() ([]opcode.OpCode, error) {
+func (module Chip8) GenOpCodes() ([]opcode.OpCode, error) {
 	url := "http://www.emulator101.com/8080-by-opcode.html"
 	resp, err := http.Get(url)
 	if err != nil {

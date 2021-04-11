@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/yetibob/opgen/mod/i80"
+	"github.com/yetibob/opgen/mod"
 	"github.com/yetibob/opgen/opcode"
 )
 
@@ -21,6 +21,10 @@ func panicErr(err error) {
 }
 
 var (
+	mods = map[string]mod.Module{
+		"i80": mod.I80{},
+		"chip8": mod.Chip8{},
+	}
 	// Used for flags.
 	rootCmd = &cobra.Command{
 		Use:   "opgen",
@@ -31,6 +35,15 @@ var (
 
 			filePath, err := cmd.PersistentFlags().GetString("out")
 			panicErr(err)
+
+			modType, err := cmd.PersistentFlags().GetString("mod")
+			panicErr(err)
+
+			mod, ok := mods[modType]
+			if !ok {
+				err = fmt.Errorf("Modtype %v not supported", modType)
+				panicErr(err)
+			}
 
 			var file *os.File
 			if filePath == "" {
@@ -43,20 +56,17 @@ var (
 			in, err := cmd.PersistentFlags().GetString("in")
 			panicErr(err)
 
-			if format == "json" {
-				opcodes, err := i80.GenOpCodes()
+			var opcodes []opcode.OpCode
+			if in == "" {
+				opcodes, err = mod.GenOpCodes()
 				panicErr(err)
 
+			} else {
+				opcodes = readOpJSON(in)
+			}
+			if format == "json" {
 				writeOpcodes(file, opcodes)
 			} else if format == "go" {
-				var opcodes []opcode.OpCode
-				if in == "" {
-					opcodes, err = i80.GenOpCodes()
-					panicErr(err)
-
-				} else {
-					opcodes = readOpJSON(in)
-				}
 				writeGo(file, opcodes)
 			} else {
 				fmt.Println("Currently only supports JSON and Go output")
@@ -126,6 +136,7 @@ func Execute() error {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	rootCmd.PersistentFlags().StringP("mod", "m", "i80", "mod to run. defaults to i80")
 	rootCmd.PersistentFlags().StringP("format", "f", "json", "output format")
 	rootCmd.PersistentFlags().StringP("in", "i", "", "input file")
 	rootCmd.PersistentFlags().StringP("out", "o", "", "name of output file. defaults to std out")
