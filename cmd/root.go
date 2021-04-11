@@ -41,7 +41,7 @@ var (
 
 			mod, ok := mods[modType]
 			if !ok {
-				err = fmt.Errorf("Modtype %v not supported", modType)
+				err = fmt.Errorf("Mod %v not supported", modType)
 				panicErr(err)
 			}
 
