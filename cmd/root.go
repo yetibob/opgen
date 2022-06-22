@@ -112,9 +112,9 @@ func writeGo(file *os.File, codes []opcode.OpCode) {
 				gocode += fmt.Sprintf("\t\tfmt.printf(\"%v%v%v\\n\")\n", name[0], spaces, name[1])
 			}
 		} else if op.Size == 2 {
-			gocode += fmt.Sprintf("\t\tfmt.printf(\"%v%v%v,%v\\t$%%02x\\n\", buf[1])\n", name[0], spaces, "b", "d8")
+			gocode += fmt.Sprintf("\t\tfmt.printf(\"%v%v%v,%v\\t$%%02x\\n\", buf[1])\n", name[0], spaces, "B", "D8")
 		} else if op.Size == 3 {
-			gocode += fmt.Sprintf("\t\tfmt.printf(\"%v%v%v,%v\\t$%%02x%%02x\\n\", buf[2], buf[1])\n", name[0], spaces, "b", "d16")
+			gocode += fmt.Sprintf("\t\tfmt.printf(\"%v%v%v,%v\\t$%%02x%%02x\\n\", buf[2], buf[1])\n", name[0], spaces, "B", "D16")
 		}
 		if op.Size > 1 {
 			gocode += fmt.Sprintf("\t\topbytes = %v\n", op.Size)
@@ -125,9 +125,9 @@ func writeGo(file *os.File, codes []opcode.OpCode) {
 }
 
 func writeCpp(file *os.File, codes []opcode.OpCode) {
-	cppcode := "#include <fmt/core.h>\n#include <vector>\n\nint handleOp(std::vector<uint8_t> &buf, int pc) {\n\tint opbytes = 1;\n\tuint8_t *code    = &buf[pc];\n\tswitch (*code) {\n"
+	cppcode := "#include <fmt/core.h>\n#include <vector>\n\nint handleOp(std::vector<uint8_t> &buf, int pc) {\n\tint opbytes = 1;\n\tuint8_t *code    = &buf[pc];\n\tfmt::print(\"{:04X} : \", pc);\n\n\tswitch (*code) {\n"
 	for _, op := range codes {
-		cppcode += fmt.Sprintf("\tcase 0x%02x:\n", op.Code)
+		cppcode += fmt.Sprintf("\tcase 0x%02X:\n", op.Code)
 		name := strings.Split(op.Name, " ")
 		if name[0] == "-" {
 			name[0] = "NOP"
@@ -147,9 +147,9 @@ func writeCpp(file *os.File, codes []opcode.OpCode) {
 				cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v%v%v\\n\");\n", op.Code, name[0], spaces, name[1])
 			}
 		} else if op.Size == 2 {
-			cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v%v%v,%v\\t\\t${:02X}\\n\", code[1]);\n", op.Code, name[0], spaces, "B", "D8")
+			cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v%v%v\\t${:02X}\\n\", code[1]);\n", op.Code, name[0], spaces, name[1])
 		} else if op.Size == 3 {
-			cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v%v%v,%v\\t${:02X}{:02X}\\n\", code[2], code[1]);\n", op.Code, name[0], spaces, "B", "D16")
+			cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v%v%v\\t${:02X}{:02X}\\n\", code[2], code[1]);\n", op.Code, name[0], spaces, name[1])
 		}
 		if op.Size > 1 {
 			cppcode += fmt.Sprintf("\t\topbytes = %v;\n", op.Size)
