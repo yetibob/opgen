@@ -22,7 +22,7 @@ func panicErr(err error) {
 
 var (
 	mods = map[string]mod.Module{
-		"i80": mod.I80{},
+		"i80":   mod.I80{},
 		"chip8": mod.Chip8{},
 	}
 	// Used for flags.
@@ -41,7 +41,7 @@ var (
 
 			mod, ok := mods[modType]
 			if !ok {
-				err = fmt.Errorf("Mod %v not supported", modType)
+				err = fmt.Errorf("mod %v not supported", modType)
 				panicErr(err)
 			}
 
@@ -68,6 +68,8 @@ var (
 				writeOpcodes(file, opcodes)
 			} else if format == "go" {
 				writeGo(file, opcodes)
+			} else if format == "cpp" {
+				writeCpp(file, opcodes)
 			} else {
 				fmt.Println("Currently only supports JSON and Go output")
 			}
@@ -88,9 +90,9 @@ func readOpJSON(fileName string) []opcode.OpCode {
 }
 
 func writeGo(file *os.File, codes []opcode.OpCode) {
-	goCode := "package opcode\n\nimport (\n\t\"fmt\"\n)\n\n// HandleOp handles opcodes\nfunc HandleOp(buf []byte) int {\n\topbytes := 1\n\tswitch buf[0] {\n"
+	gocode := "package opcode\n\nimport (\n\t\"fmt\"\n)\n\n// handleop handles opcodes\nfunc handleop(buf []byte) int {\n\topbytes := 1\n\tswitch buf[0] {\n"
 	for _, op := range codes {
-		goCode += fmt.Sprintf("\tcase 0x%02X:\n\t\tfmt.Println(\"Handling OpCode: 0x%02X\")\n", op.Code, op.Code)
+		gocode += fmt.Sprintf("\tcase 0x%02x:\n\t\tfmt.println(\"handling opcode: 0x%02x\")\n", op.Code, op.Code)
 		name := strings.Split(op.Name, " ")
 		if name[0] == "-" {
 			name[0] = "NOP"
@@ -105,21 +107,57 @@ func writeGo(file *os.File, codes []opcode.OpCode) {
 
 		if op.Size == 1 {
 			if len(name) == 1 {
-				goCode += fmt.Sprintf("\t\tfmt.Printf(\"%v\\n\")\n", name[0])
+				gocode += fmt.Sprintf("\t\tfmt.printf(\"%v\\n\")\n", name[0])
 			} else {
-				goCode += fmt.Sprintf("\t\tfmt.Printf(\"%v%v%v\\n\")\n", name[0], spaces, name[1])
+				gocode += fmt.Sprintf("\t\tfmt.printf(\"%v%v%v\\n\")\n", name[0], spaces, name[1])
 			}
 		} else if op.Size == 2 {
-			goCode += fmt.Sprintf("\t\tfmt.Printf(\"%v%v%v,%v\\t$%%02X\\n\", buf[1])\n", name[0], spaces, "B", "D8")
+			gocode += fmt.Sprintf("\t\tfmt.printf(\"%v%v%v,%v\\t$%%02x\\n\", buf[1])\n", name[0], spaces, "b", "d8")
 		} else if op.Size == 3 {
-			goCode += fmt.Sprintf("\t\tfmt.Printf(\"%v%v%v,%v\\t$%%02X%%02X\\n\", buf[2], buf[1])\n", name[0], spaces, "B", "D16")
+			gocode += fmt.Sprintf("\t\tfmt.printf(\"%v%v%v,%v\\t$%%02x%%02x\\n\", buf[2], buf[1])\n", name[0], spaces, "b", "d16")
 		}
 		if op.Size > 1 {
-			goCode += fmt.Sprintf("\t\topbytes = %v\n", op.Size)
+			gocode += fmt.Sprintf("\t\topbytes = %v\n", op.Size)
 		}
 	}
-	goCode += "\tdefault:\n\t\tfmt.Printf(\"Unknown OpCode: 0x%02X\\n\", buf[0])\n\t}\n\n\treturn opbytes\n}\n"
-	io.WriteString(file, goCode)
+	gocode += "\tdefault:\n\t\tfmt.printf(\"unknown opcode: 0x%02x\\n\", buf[0])\n\t}\n\n\treturn opbytes\n}\n"
+	io.WriteString(file, gocode)
+}
+
+func writeCpp(file *os.File, codes []opcode.OpCode) {
+	cppcode := "#include <fmt/core.h>\n#include <vector>\n\nint handleOp(std::vector<uint8_t> &buf, int pc) {\n\tint opbytes = 1;\n\tuint8_t *code    = &buf[pc];\n\tswitch (*code) {\n"
+	for _, op := range codes {
+		cppcode += fmt.Sprintf("\tcase 0x%02x:\n", op.Code)
+		name := strings.Split(op.Name, " ")
+		if name[0] == "-" {
+			name[0] = "NOP"
+		}
+
+		spaces := "    "
+		if l := len(name[0]); l == 3 {
+			spaces += " "
+		} else if l == 2 {
+			spaces += "  "
+		}
+
+		if op.Size == 1 {
+			if len(name) == 1 {
+				cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v\\n\");\n", op.Code, name[0])
+			} else {
+				cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v%v%v\\n\");\n", op.Code, name[0], spaces, name[1])
+			}
+		} else if op.Size == 2 {
+			cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v%v%v,%v\\t\\t${:02X}\\n\", code[1]);\n", op.Code, name[0], spaces, "B", "D8")
+		} else if op.Size == 3 {
+			cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v%v%v,%v\\t${:02X}{:02X}\\n\", code[2], code[1]);\n", op.Code, name[0], spaces, "B", "D16")
+		}
+		if op.Size > 1 {
+			cppcode += fmt.Sprintf("\t\topbytes = %v;\n", op.Size)
+		}
+		cppcode += "\t\tbreak;\n"
+	}
+	cppcode += "\tdefault:\n\t\tfmt::print(\"unknown opcode: {:#2X}\\n\", *code);\n\t\tbreak;\n\t}\n\n\treturn opbytes;\n}\n"
+	io.WriteString(file, cppcode)
 }
 
 func writeOpcodes(file *os.File, codes []opcode.OpCode) {
@@ -142,6 +180,4 @@ func init() {
 	rootCmd.PersistentFlags().StringP("out", "o", "", "name of output file. defaults to std out")
 }
 
-func initConfig() {
-	return
-}
+func initConfig() {}
