@@ -133,23 +133,16 @@ func writeCpp(file *os.File, codes []opcode.OpCode) {
 			name[0] = "NOP"
 		}
 
-		spaces := "    "
-		if l := len(name[0]); l == 3 {
-			spaces += " "
-		} else if l == 2 {
-			spaces += "  "
-		}
-
 		if op.Size == 1 {
 			if len(name) == 1 {
-				cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v\\n\");\n", op.Code, name[0])
+				cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %-5v\\n\");\n", op.Code, name[0])
 			} else {
-				cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v%v%v\\n\");\n", op.Code, name[0], spaces, name[1])
+				cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %-5v%-7v\\n\");\n", op.Code, name[0], name[1])
 			}
 		} else if op.Size == 2 {
-			cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v%v%v\\t${:02X}\\n\", code[1]);\n", op.Code, name[0], spaces, name[1])
+			cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %-5v%-7v${:02X}\\n\", code[1]);\n", op.Code, name[0], name[1])
 		} else if op.Size == 3 {
-			cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %v%v%v\\t${:02X}{:02X}\\n\", code[2], code[1]);\n", op.Code, name[0], spaces, name[1])
+			cppcode += fmt.Sprintf("\t\tfmt::print(\"0x%02X : %-5v%-7v${:02X}{:02X}\\n\", code[2], code[1]);\n", op.Code, name[0], name[1])
 		}
 		if op.Size > 1 {
 			cppcode += fmt.Sprintf("\t\topbytes = %v;\n", op.Size)
